@@ -14,6 +14,7 @@
 
 var createGameButton = document.getElementById("createGameButton");
 var showJoinFormButton = document.getElementById("showJoinFormButton");
+var backToWelcomeFromJoinButton = document.getElementById("backToWelcomeFromJoinButton");
 var joinForm = document.getElementById("joinForm");
 var agentNameInput = document.getElementById("agentNameInput");
 var hostIdInput = document.getElementById("hostIdInput");
@@ -26,8 +27,10 @@ var gameOverScreen = document.getElementById("gameOverScreen");
 
 var hostRoomId = document.getElementById("hostRoomId");
 var copyRoomIdButton = document.getElementById("copyRoomIdButton");
+var hostMainPageButton = document.getElementById("hostMainPageButton");
 var startGameButton = document.getElementById("startGameButton");
 var generateRequestButton = document.getElementById("generateRequestButton");
+var resetGameButton = document.getElementById("resetGameButton");
 var hostRequestText = document.getElementById("hostRequestText");
 var hostQuotaText = document.getElementById("hostQuotaText");
 var hostStatusMessage = document.getElementById("hostStatusMessage");
@@ -42,6 +45,7 @@ var agentPlayerList = document.getElementById("agentPlayerList");
 var selectedCountText = document.getElementById("selectedCountText");
 var sendSelectedButton = document.getElementById("sendSelectedButton");
 var alienTableBody = document.getElementById("alienTableBody");
+var gameOverMainPageButton = document.getElementById("gameOverMainPageButton");
 var gameOverMessage = document.getElementById("gameOverMessage");
 
 var alienNames = [];
@@ -73,14 +77,7 @@ var alienSelectSound = new Audio("assets/sounds/alien-select.mp3");
 buttonClickSound.preload = "auto";
 alienSelectSound.preload = "auto";
 
-var hostGameState = {
-  hasStarted: false,
-  gameOver: false,
-  currentRequest: null,
-  remainingSpaces: 0,
-  currentRequestSubmissions: {},
-  agents: {}
-};
+var hostGameState = makeEmptyHostGameState();
 
 /////////////////////////////////////////////////////
 //////////       LOAD JSON DATA          ////////////
@@ -178,6 +175,87 @@ function showOnlyScreen(screenToShow) {
   gameOverScreen.classList.remove("active");
 
   screenToShow.classList.add("active");
+}
+
+function makeEmptyHostGameState() {
+  return {
+    hasStarted: false,
+    gameOver: false,
+    currentRequest: null,
+    remainingSpaces: 0,
+    currentRequestSubmissions: {},
+    agents: {}
+  };
+}
+
+function resetWelcomeScreen() {
+  createGameButton.classList.remove("hidden");
+  showJoinFormButton.classList.remove("hidden");
+  joinForm.classList.add("hidden");
+  agentNameInput.value = "";
+  hostIdInput.value = "";
+}
+
+function hideAgentRoundDetails() {
+  agentQuotaText.classList.add("hidden");
+  agentSubmissionStatus.classList.add("hidden");
+}
+
+function showAgentRoundDetails() {
+  agentQuotaText.classList.remove("hidden");
+  agentSubmissionStatus.classList.remove("hidden");
+}
+
+function hideHostQuota() {
+  hostQuotaText.classList.add("hidden");
+}
+
+function showHostQuota() {
+  hostQuotaText.classList.remove("hidden");
+}
+
+function returnToMainPage() {
+  if (currentRole === "host") {
+    broadcastToAgents({
+      type: "host-reset",
+      message: "The host returned to the main page."
+    });
+  }
+
+  if (peer !== null) {
+    peer.destroy();
+  }
+
+  peer = null;
+  hostConnection = null;
+  currentRole = "";
+  currentAgentName = "";
+  localAgentAliens = [];
+  selectedAlienIds = [];
+  hostGameState = makeEmptyHostGameState();
+
+  hostRoomId.textContent = "----";
+  hostRequestText.textContent = "Waiting to start.";
+  hostQuotaText.textContent = "No active Earth request.";
+  hideHostQuota();
+  hostStatusMessage.textContent = "Share the room ID with agents.";
+  copyRoomIdButton.disabled = false;
+  hostPlayerList.innerHTML = "";
+  renderHostPlayerList();
+  renderHostSubmissionList();
+
+  agentRequestText.textContent = "Waiting for the host to start.";
+  agentQuotaText.textContent = "No active quota.";
+  agentSubmissionStatus.textContent = "No submission yet.";
+  hideAgentRoundDetails();
+  agentPlayerList.innerHTML = "";
+  alienTableBody.innerHTML = "";
+  updateAgentRemainingBadge();
+  updateSelectedCount();
+
+  resetWelcomeScreen();
+  setConnectionStatus("Not connected");
+  showOnlyScreen(welcomeScreen);
 }
 
 function setConnectionStatus(message) {
@@ -315,8 +393,6 @@ function generateEarthRequest() {
     "hazard",
     "purpose",
     "dangerousMilitaryProgramme",
-    "eyesAndPurpose",
-    "nameStartsWithAndHazard",
     "eyeColourAndHeight"
   ];
 
@@ -446,42 +522,6 @@ function generateEarthRequest() {
     });
   }
 
-  if (requestType === "eyesAndPurpose") {
-    var requestedEyes = getRandomInteger(generationSettings.minimumEyes, generationSettings.maximumEyes);
-    var requestedPurpose = getRandomItem(purposes);
-
-    request.value = requestedEyes;
-    request.description = "Earth requests " + spacesAvailable + " aliens with " + requestedEyes + " eyes coming for " + requestedPurpose + ".";
-    request.conditions.push({
-      trait: "numberOfEyes",
-      comparison: "equals",
-      value: requestedEyes
-    });
-    request.conditions.push({
-      trait: "purpose",
-      comparison: "equals",
-      value: requestedPurpose
-    });
-  }
-
-  if (requestType === "nameStartsWithAndHazard") {
-    var requestedFirstLetter = getRandomAlienNameFirstLetter();
-    var requestedHazard = getRandomItem(hazards);
-
-    request.value = requestedFirstLetter;
-    request.description = "Earth requests " + spacesAvailable + " " + requestedHazard + " aliens whose name starts with " + requestedFirstLetter + ".";
-    request.conditions.push({
-      trait: "name",
-      comparison: "startsWith",
-      value: requestedFirstLetter
-    });
-    request.conditions.push({
-      trait: "hazard",
-      comparison: "equals",
-      value: requestedHazard
-    });
-  }
-
   if (requestType === "eyeColourAndHeight") {
     var requestedEyeColour = getRandomItem(eyeColours);
     var requestedHeight = getRandomItem(generationSettings.heightRequestThresholds);
@@ -505,8 +545,6 @@ function generateEarthRequest() {
 
 function isCompoundRequestType(requestType) {
   var compoundRequestTypes = [
-    "eyesAndPurpose",
-    "nameStartsWithAndHazard",
     "eyeColourAndHeight"
   ];
 
@@ -646,6 +684,12 @@ function createHostPeerWithRoomId(roomId) {
     setConnectionStatus("Hosting room " + openedPeerId);
     showOnlyScreen(hostScreen);
     renderHostPlayerList();
+    renderHostSubmissionList();
+    startGameButton.disabled = hostGameState.hasStarted;
+    copyRoomIdButton.disabled = hostGameState.hasStarted;
+    hostMainPageButton.disabled = hostGameState.hasStarted;
+    generateRequestButton.disabled = hostGameState.hasStarted === false || hostGameState.gameOver === true;
+    hideHostQuota();
   });
 
   peer.on("connection", function(connection) {
@@ -734,11 +778,12 @@ function startHostGame() {
 
   hostGameState.hasStarted = true;
   startGameButton.disabled = true;
+  copyRoomIdButton.disabled = true;
+  hostMainPageButton.disabled = true;
   generateRequestButton.disabled = false;
 
   for (var index = 0; index < agentPeerIds.length; index = index + 1) {
-    var peerId = agentPeerIds[index];
-    var agentRecord = hostGameState.agents[peerId];
+    var agentRecord = hostGameState.agents[agentPeerIds[index]];
     var aliensForAgent = generateAlienManifest(generationSettings.aliensPerAgent);
 
     agentRecord.aliens = aliensForAgent;
@@ -746,15 +791,20 @@ function startHostGame() {
       return alien.id;
     });
 
-    agentRecord.connection.send({
-      type: "game-started",
-      aliens: aliensForAgent,
-      progress: buildPublicProgressList()
-    });
+    if (agentRecord.connection !== null && agentRecord.connection.open === true) {
+      agentRecord.connection.send({
+        type: "game-started",
+        aliens: aliensForAgent,
+        currentRequest: hostGameState.currentRequest,
+        remainingSpaces: hostGameState.remainingSpaces,
+        progress: buildPublicProgressList()
+      });
+    }
   }
 
   hostRequestText.textContent = "Game started. Generate the first Earth request.";
   hostQuotaText.textContent = "No active quota.";
+  showHostQuota();
   showTemporaryHostStatus("Each agent received " + generationSettings.aliensPerAgent + " randomly generated aliens.");
   renderHostPlayerList();
   renderHostSubmissionList();
@@ -773,6 +823,7 @@ function hostGenerateRequest() {
   hostRequestText.textContent = hostGameState.currentRequest.description;
   flashRequirementText(hostRequestText);
   hostQuotaText.textContent = getQuotaText(hostGameState.remainingSpaces);
+  showHostQuota();
   renderHostSubmissionList();
   showTemporaryHostStatus("New Earth request broadcast to all agents.");
 
@@ -892,6 +943,20 @@ function addPenaltyAlienToAgent(agentRecord) {
   return newAlien;
 }
 
+function getRemainingAliensForAgent(agentRecord) {
+  var remainingAliens = [];
+
+  for (var index = 0; index < agentRecord.aliens.length; index = index + 1) {
+    var alien = agentRecord.aliens[index];
+
+    if (agentRecord.remainingAlienIds.indexOf(alien.id) !== -1) {
+      remainingAliens.push(alien);
+    }
+  }
+
+  return remainingAliens;
+}
+
 function recordHostSubmission(agentRecord, sentCount, acceptedCount) {
   if (hostGameState.currentRequestSubmissions[agentRecord.peerId] === undefined) {
     hostGameState.currentRequestSubmissions[agentRecord.peerId] = {
@@ -985,6 +1050,76 @@ function declareWinner(winnerName) {
   });
 }
 
+function resetGameAsHost() {
+  var hostConfirmedReset = window.confirm("Reset this game for everyone?");
+
+  if (hostConfirmedReset === false) {
+    return;
+  }
+
+  broadcastToAgents({
+    type: "host-reset",
+    message: "The host reset the game."
+  });
+
+  window.setTimeout(function() {
+    finishHostReset();
+  }, 150);
+}
+
+function finishHostReset() {
+  if (peer !== null) {
+    peer.destroy();
+  }
+
+  peer = null;
+  hostConnection = null;
+  currentRole = "";
+  currentAgentName = "";
+  localAgentAliens = [];
+  selectedAlienIds = [];
+  hostGameState = makeEmptyHostGameState();
+
+  hostRoomId.textContent = "----";
+  hostRequestText.textContent = "Waiting to start.";
+  hostQuotaText.textContent = "No active Earth request.";
+  hideHostQuota();
+  hostStatusMessage.textContent = "Share the room ID with agents.";
+  copyRoomIdButton.disabled = false;
+  hostMainPageButton.disabled = false;
+  hostPlayerList.innerHTML = "";
+  renderHostPlayerList();
+  renderHostSubmissionList();
+  resetWelcomeScreen();
+  setConnectionStatus("Not connected");
+  showOnlyScreen(welcomeScreen);
+}
+
+function resetAgentAfterHostReset(message) {
+  if (peer !== null) {
+    peer.destroy();
+  }
+
+  peer = null;
+  hostConnection = null;
+  currentRole = "";
+  currentAgentName = "";
+  localAgentAliens = [];
+  selectedAlienIds = [];
+
+  agentRequestText.textContent = "Waiting for the host to start.";
+  agentQuotaText.textContent = "No active quota.";
+  agentSubmissionStatus.textContent = message;
+  hideAgentRoundDetails();
+  agentPlayerList.innerHTML = "";
+  alienTableBody.innerHTML = "";
+  updateAgentRemainingBadge();
+  updateSelectedCount();
+  resetWelcomeScreen();
+  setConnectionStatus(message);
+  showOnlyScreen(welcomeScreen);
+}
+
 /////////////////////////////////////////////////////
 //////////       HOST BROADCASTS         ////////////
 /////////////////////////////////////////////////////
@@ -1012,7 +1147,7 @@ function broadcastToAgents(message) {
   for (var index = 0; index < agentPeerIds.length; index = index + 1) {
     var agentRecord = hostGameState.agents[agentPeerIds[index]];
 
-    if (agentRecord.isConnected === true && agentRecord.connection.open === true) {
+    if (agentRecord.isConnected === true && agentRecord.connection !== null && agentRecord.connection.open === true) {
       agentRecord.connection.send(message);
     }
   }
@@ -1088,6 +1223,16 @@ function prepareAgentConnection() {
 
 function receiveMessageAsAgent(message) {
   if (message.type === "join-accepted") {
+    currentAgentName = message.agentName;
+    agentRequestText.textContent = "Waiting for the host to start.";
+    agentQuotaText.textContent = "No active quota.";
+    agentSubmissionStatus.textContent = "No submission yet.";
+    hideAgentRoundDetails();
+    localAgentAliens = [];
+    selectedAlienIds = [];
+    renderAlienTableSkeleton(10);
+    updateAgentRemainingBadge();
+    updateSelectedCount();
     setConnectionStatus("Joined room " + message.roomId);
     showOnlyScreen(agentScreen);
   }
@@ -1101,7 +1246,8 @@ function receiveMessageAsAgent(message) {
     selectedAlienIds = [];
     agentRequestText.textContent = "Waiting for Earth's first request.";
     agentQuotaText.textContent = "No active quota.";
-    agentSubmissionStatus.textContent = "Manifest received.";
+    agentSubmissionStatus.textContent = "No submission yet.";
+    hideAgentRoundDetails();
     renderAlienTable();
     renderAgentProgress(message.progress);
     updateAgentRemainingBadge();
@@ -1113,6 +1259,7 @@ function receiveMessageAsAgent(message) {
     flashRequirementText(agentRequestText);
     agentQuotaText.textContent = getQuotaText(message.remainingSpaces);
     agentSubmissionStatus.textContent = "Select matching aliens and send them to customs.";
+    showAgentRoundDetails();
     renderAgentProgress(message.progress);
     updateSendButtonState(message.remainingSpaces);
   }
@@ -1123,6 +1270,7 @@ function receiveMessageAsAgent(message) {
     selectedAlienIds = [];
     agentQuotaText.textContent = getQuotaText(message.remainingSpaces);
     agentSubmissionStatus.textContent = buildSubmissionStatusText(message);
+    showAgentRoundDetails();
     renderAlienTable();
     renderAgentProgress(message.progress);
     updateAgentRemainingBadge();
@@ -1132,6 +1280,7 @@ function receiveMessageAsAgent(message) {
 
   if (message.type === "quota-update") {
     agentQuotaText.textContent = getQuotaText(message.remainingSpaces);
+    showAgentRoundDetails();
     renderAgentProgress(message.progress);
     updateSendButtonState(message.remainingSpaces);
   }
@@ -1146,6 +1295,10 @@ function receiveMessageAsAgent(message) {
     sendSelectedButton.disabled = true;
     setConnectionStatus("Game over");
     showOnlyScreen(gameOverScreen);
+  }
+
+  if (message.type === "host-reset") {
+    resetAgentAfterHostReset(message.message);
   }
 }
 
@@ -1343,6 +1496,28 @@ function renderAlienTable() {
   }
 }
 
+function renderAlienTableSkeleton(rowCount) {
+  alienTableBody.innerHTML = "";
+
+  for (var rowIndex = 0; rowIndex < rowCount; rowIndex = rowIndex + 1) {
+    var row = document.createElement("tr");
+
+    row.className = "skeleton-row";
+    row.setAttribute("aria-hidden", "true");
+
+    for (var cellIndex = 0; cellIndex < 9; cellIndex = cellIndex + 1) {
+      var cell = document.createElement("td");
+      var skeletonBar = document.createElement("span");
+
+      skeletonBar.className = "skeleton-bar skeleton-bar-" + ((cellIndex % 3) + 1);
+      cell.appendChild(skeletonBar);
+      row.appendChild(cell);
+    }
+
+    alienTableBody.appendChild(row);
+  }
+}
+
 function makeTextCell(text) {
   var cell = document.createElement("td");
   cell.textContent = text;
@@ -1428,6 +1603,11 @@ showJoinFormButton.addEventListener("click", function() {
   agentNameInput.focus();
 });
 
+backToWelcomeFromJoinButton.addEventListener("click", function() {
+  resetWelcomeScreen();
+  setConnectionStatus("Not connected");
+});
+
 joinForm.addEventListener("submit", function(event) {
   event.preventDefault();
 
@@ -1463,12 +1643,24 @@ copyRoomIdButton.addEventListener("click", function() {
   }
 });
 
+hostMainPageButton.addEventListener("click", function() {
+  returnToMainPage();
+});
+
 startGameButton.addEventListener("click", function() {
   startHostGame();
 });
 
 generateRequestButton.addEventListener("click", function() {
   hostGenerateRequest();
+});
+
+resetGameButton.addEventListener("click", function() {
+  resetGameAsHost();
+});
+
+gameOverMainPageButton.addEventListener("click", function() {
+  returnToMainPage();
 });
 
 sendSelectedButton.addEventListener("click", function() {
@@ -1535,6 +1727,7 @@ function showAgentPreview(numberOfOtherAgents) {
   agentRequestText.textContent = previewRequest.description;
   agentQuotaText.textContent = getQuotaText(previewRequest.spaces);
   agentSubmissionStatus.textContent = "Preview mode: rows are clickable, but no host is connected.";
+  showAgentRoundDetails();
   sendSelectedButton.disabled = true;
 
   renderAlienTable();
@@ -1603,8 +1796,11 @@ function showHostPreview(numberOfConnectedAgents) {
   hostRoomId.textContent = "AC-DEMO";
   hostRequestText.textContent = hostGameState.currentRequest.description;
   hostQuotaText.textContent = getQuotaText(hostGameState.remainingSpaces);
+  showHostQuota();
   hostStatusMessage.textContent = "Preview mode: these are sample agents.";
   startGameButton.disabled = true;
+  copyRoomIdButton.disabled = true;
+  hostMainPageButton.disabled = true;
   generateRequestButton.disabled = true;
 
   renderHostPlayerList();

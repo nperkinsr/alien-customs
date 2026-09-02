@@ -15,7 +15,7 @@
 </head>
 
 <body>
-  <main class="game-shell">
+  <main class="game-page">
     <section class="top-banner">
       <div class="brand-lockup">
         <img class="alien-logo" src="assets/alien.png" alt="" />
@@ -66,6 +66,9 @@
               <i class="bi bi-send"></i>
               Connect
             </button>
+            <button class="secondary-action" id="backToWelcomeFromJoinButton" type="button">
+              Back
+            </button>
           </form>
 
           <p class="status-line connection-message hidden" id="connectionStatus">Not connected</p>
@@ -79,18 +82,25 @@
           <p class="eyebrow">Host console</p>
           <h2 id="hostTitle">Room <span id="hostRoomId">----</span></h2>
         </div>
-        <button class="secondary-action compact-button" id="copyRoomIdButton">
-          <i class="bi bi-clipboard"></i>
-          Copy ID
-        </button>
+        <div class="host-header-actions">
+          <button class="secondary-action compact-button" id="copyRoomIdButton">
+            <i class="bi bi-clipboard"></i>
+            Copy ID
+          </button>
+          <button class="secondary-action compact-button" id="hostMainPageButton">
+            Back
+          </button>
+        </div>
       </div>
 
       <div class="dashboard-grid">
-        <section class="control-panel" aria-labelledby="roundControlsTitle">
+        <section class="control-panel round-controls-panel" aria-labelledby="roundControlsTitle">
           <h3 id="roundControlsTitle">Round Controls</h3>
-          <p class="request-text" id="hostRequestText">Waiting to start.</p>
-          <p class="quota-text" id="hostQuotaText">No active Earth request.</p>
-          <div class="button-row">
+          <div class="round-request-block">
+            <p class="request-text" id="hostRequestText">Waiting to start.</p>
+            <p class="quota-text hidden" id="hostQuotaText">No active Earth request.</p>
+          </div>
+          <div class="button-row round-action-row">
             <button class="primary-action" id="startGameButton" disabled>
               <i class="bi bi-play-fill"></i>
               Start Game
@@ -99,8 +109,12 @@
               <i class="bi bi-stars"></i>
               Generate Earth Request
             </button>
+            <button class="secondary-action danger-action" id="resetGameButton">
+              <i class="bi bi-arrow-counterclockwise"></i>
+              Reset Game
+            </button>
           </div>
-          <p class="status-line" id="hostStatusMessage">Share the room ID with agents.</p>
+          <p class="status-line host-status-line" id="hostStatusMessage">Share the room ID with agents.</p>
         </section>
 
         <section class="control-panel" aria-labelledby="connectedPlayersTitle">
@@ -121,8 +135,8 @@
       <section class="control-panel request-panel agent-request-row" aria-labelledby="earthRequestTitle">
         <h3 id="earthRequestTitle">Current Earth Request</h3>
         <p class="request-text" id="agentRequestText">Waiting for the host to start.</p>
-        <p class="quota-text" id="agentQuotaText">No active quota.</p>
-        <p class="status-line" id="agentSubmissionStatus">No submission yet.</p>
+        <p class="quota-text hidden" id="agentQuotaText">No active quota.</p>
+        <p class="status-line hidden" id="agentSubmissionStatus">No submission yet.</p>
       </section>
 
       <section class="manifest-panel" aria-labelledby="manifestTitle">
@@ -170,6 +184,9 @@
         <p class="eyebrow">Customs cleared</p>
         <h2 id="gameOverTitle">Game Over</h2>
         <p id="gameOverMessage">An agent has cleared customs.</p>
+        <button class="primary-action" id="gameOverMainPageButton">
+          Main Page
+        </button>
       </div>
     </section>
   </main>
