@@ -640,12 +640,12 @@ tbody tr.skeleton-row:nth-child(even):hover {
 .skeleton-bar::after {
   content: "";
   position: absolute;
-  top: 0;
-  bottom: 0;
+  top: -40%;
+  bottom: -40%;
   left: -65%;
-  width: 55%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.62), transparent);
-  animation: skeleton-shimmer 1.45s ease-in-out infinite;
+  width: 42%;
+  background: linear-gradient(105deg, transparent 18%, rgba(255, 255, 255, 0.34) 50%, transparent 82%);
+  animation: skeleton-shimmer 3.8s ease-in-out infinite;
 }
 
 .skeleton-bar-1 {
@@ -663,6 +663,10 @@ tbody tr.skeleton-row:nth-child(even):hover {
 @keyframes skeleton-shimmer {
   0% {
     transform: translateX(0);
+  }
+
+  42% {
+    transform: translateX(300%);
   }
 
   100% {
