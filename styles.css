@@ -179,10 +179,31 @@ h3 {
 
 .dashboard-grid {
   grid-template-columns: minmax(0, 1fr) minmax(280px, 0.55fr);
+  grid-template-areas:
+    "round agents"
+    "submissions agents";
+  align-items: start;
+}
+
+.round-controls-panel {
+  grid-area: round;
+}
+
+.host-agents-panel {
+  grid-area: agents;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+}
+
+.host-agents-panel .player-list {
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .host-submissions-panel {
-  grid-column: 1 / -1;
+  grid-area: submissions;
 }
 
 .round-controls-panel {
@@ -763,6 +784,19 @@ tbody tr.skeleton-row:nth-child(even):hover {
   .welcome-grid,
   .dashboard-grid {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-grid {
+    grid-template-areas:
+      "round"
+      "agents"
+      "submissions";
+  }
+
+  .host-agents-panel .player-list {
+    max-height: none;
+    overflow-y: visible;
+    padding-right: 0;
   }
 
   .intro-panel {
