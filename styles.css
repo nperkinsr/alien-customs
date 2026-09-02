@@ -23,6 +23,11 @@
   box-sizing: border-box;
 }
 
+::selection {
+  color: #0f0f0f;
+  background: var(--green);
+}
+
 html {
   min-height: 100%;
 }
