@@ -642,7 +642,7 @@ tbody tr.skeleton-row:nth-child(even):hover {
   position: absolute;
   top: -40%;
   bottom: -40%;
-  left: -65%;
+  left: -80%;
   width: 42%;
   background: linear-gradient(105deg, transparent 18%, rgba(255, 255, 255, 0.34) 50%, transparent 82%);
   animation: skeleton-shimmer 3.8s ease-in-out infinite;
@@ -666,11 +666,11 @@ tbody tr.skeleton-row:nth-child(even):hover {
   }
 
   42% {
-    transform: translateX(300%);
+    transform: translateX(430%);
   }
 
   100% {
-    transform: translateX(300%);
+    transform: translateX(430%);
   }
 }
 
