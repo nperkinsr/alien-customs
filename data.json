@@ -1,0 +1,162 @@
+{
+  "alienNames": [
+  "Aria",
+  "Anubi",
+  "Aznik",
+
+  "Blorbo",
+  "Bimble",
+  "Bob",
+
+  "Cordu",
+  "Crombo",
+  "Cazli",
+
+  "Droot",
+  "Dazze",
+  "Doppo",
+
+  "Eppo",
+  "Exali",
+  "Emzik",
+
+  "Flimmi",
+  "Farlo",
+  "Fuzzo",
+
+  "Gorlo",
+  "Glimbi",
+  "Grax",
+
+  "Hexa",
+  "Hoolik",
+  "Huvvi",
+
+  "Ippi",
+  "Ixno",
+  "Izzik",
+
+  "Jibbit",
+  "Jurno",
+  "Jaxu",
+
+  "Kevin",
+  "Kavak",
+  "Kloop",
+
+  "Lommi",
+  "Luppa",
+  "Lazlo",
+
+  "Marnu",
+  "Moopa",
+  "Mivvi",
+
+  "Norb",
+  "Nixno",
+  "Nubbi",
+
+  "Oolap",
+  "Orbi",
+  "Ozzu",
+
+  "Pindle",
+  "Pavo",
+  "Plim",
+
+  "Quarro",
+  "Quez",
+  "Quibbi",
+
+  "Rindle",
+  "Roppo",
+  "Raxli",
+
+  "Sazza",
+  "Sprok",
+  "Soolu",
+
+  "Taloo",
+  "Tivvi",
+  "Tumbo",
+
+  "Uma",
+  "Ulrix",
+  "Uzzlo",
+
+  "Vexa",
+  "Vorlo",
+  "Vimbi",
+
+  "Wexa",
+  "Wobbit",
+  "Wurlo",
+
+  "Xim",
+  "Xoppa",
+  "Xazik",
+
+  "Yarlo",
+  "Yibbi",
+  "Yux",
+
+  "Zinxi",
+  "Zob",
+  "Zasku"
+  ],
+  "alienSpecies": [
+    "Plorbian",
+    "Nebulite",
+    "Craterian",
+    "Moonwhisk",
+    "Zentari",
+    "Quasarling",
+    "Vortan",
+    "Glacian"
+  ],
+  "eyeColours": [
+    "Green",
+    "Blue",
+    "Amber",
+    "Violet",
+    "Silver",
+    "Black"
+  ],
+  "professions": [
+    "Scientist",
+    "Chef",
+    "Pilot",
+    "Gardener",
+    "Diplomat",
+    "Mechanic",
+    "Musician",
+    "Miner",
+    "Teacher",
+    "Comedian"
+  ],
+  "hazards": [
+    "Harmless",
+    "Caution",
+    "Dangerous",
+    "Extremely Dangerous"
+  ],
+  "purposes": [
+    "Work",
+    "Study",
+    "Tourism",
+    "Family",
+    "Asylum",
+    "Retirement",
+    "Not Espionage"
+  ],
+  "generationSettings": {
+    "aliensPerAgent": 20,
+    "minimumEyes": 1,
+    "maximumEyes": 8,
+    "minimumHeightMetres": 0.7,
+    "maximumHeightMetres": 3,
+    "minimumEarthRequestSpaces": 5,
+    "maximumEarthRequestSpaces": 10,
+    "heightRequestThresholds": [1.2, 1.5, 1.8, 2, 2.2]
+  }
+}

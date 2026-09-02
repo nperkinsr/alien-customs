@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Alien Customs, a browser-based multiplayer party game." />
+
+  <title>Alien Customs</title>
+
+  <link rel="icon" type="image/png" href="assets/alien.png" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <main class="game-shell">
+    <section class="top-banner">
+      <div class="brand-lockup">
+        <img class="alien-logo" src="assets/alien.png" alt="" />
+        <div>
+          <p class="eyebrow">Interplanetary arrivals desk</p>
+          <h1>Alien Customs</h1>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen active" id="welcomeScreen" aria-labelledby="welcomeTitle">
+      <div class="welcome-grid">
+        <div class="intro-panel">
+          <p class="eyebrow">Game Objective</p>
+          <h2 id="welcomeTitle">Welcome to Earth</h2>
+          <p>
+            <br>
+            Hello to all <strong style="color: rgb(199, 199, 199);">Interplanetary Arrivals Agents</strong>!
+            <br>
+            <br>
+            At the start of the game, each agent is assigned 20 aliens, each with their own unique combination of
+            traits. Every round, <strong style="color: rgb(199, 199, 199);">Earth Customs</strong> announces which
+            aliens are currently eligible for entry,
+            but places are limited.
+            <br>
+            <br>
+            Quickly select and submit matching aliens before the quota is filled. Choose carefully, act fast and be the
+            first agent to successfully process all your aliens to win!
+          </p>
+        </div>
+
+        <div class="action-panel">
+          <button class="primary-action" id="createGameButton">
+            Create Game
+          </button>
+          <button class="secondary-action" id="showJoinFormButton">
+            Join Game
+          </button>
+
+          <form class="join-form hidden" id="joinForm">
+            <label for="agentNameInput">Agent name</label>
+            <input id="agentNameInput" type="text" maxlength="18" autocomplete="name" placeholder="Anne" />
+
+            <label for="hostIdInput">Host ID</label>
+            <input id="hostIdInput" type="text" maxlength="12" autocomplete="off" placeholder="AC-7QK2" />
+
+            <button class="primary-action" type="submit">
+              <i class="bi bi-send"></i>
+              Connect
+            </button>
+          </form>
+
+          <p class="status-line connection-message hidden" id="connectionStatus">Not connected</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="hostScreen" aria-labelledby="hostTitle">
+      <div class="screen-header">
+        <div>
+          <p class="eyebrow">Host console</p>
+          <h2 id="hostTitle">Room <span id="hostRoomId">----</span></h2>
+        </div>
+        <button class="secondary-action compact-button" id="copyRoomIdButton">
+          <i class="bi bi-clipboard"></i>
+          Copy ID
+        </button>
+      </div>
+
+      <div class="dashboard-grid">
+        <section class="control-panel" aria-labelledby="roundControlsTitle">
+          <h3 id="roundControlsTitle">Round Controls</h3>
+          <p class="request-text" id="hostRequestText">Waiting to start.</p>
+          <p class="quota-text" id="hostQuotaText">No active Earth request.</p>
+          <div class="button-row">
+            <button class="primary-action" id="startGameButton" disabled>
+              <i class="bi bi-play-fill"></i>
+              Start Game
+            </button>
+            <button class="secondary-action" id="generateRequestButton" disabled>
+              <i class="bi bi-stars"></i>
+              Generate Earth Request
+            </button>
+          </div>
+          <p class="status-line" id="hostStatusMessage">Share the room ID with agents.</p>
+        </section>
+
+        <section class="control-panel" aria-labelledby="connectedPlayersTitle">
+          <h3 id="connectedPlayersTitle">Connected Agents</h3>
+          <div class="player-list" id="hostPlayerList"></div>
+        </section>
+
+        <section class="control-panel host-submissions-panel" aria-labelledby="hostSubmissionsTitle">
+          <h3 id="hostSubmissionsTitle">Current Request Submissions</h3>
+          <div class="submission-list" id="hostSubmissionList">
+            <p class="status-line">No submissions for this request yet.</p>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="screen" id="agentScreen" aria-labelledby="earthRequestTitle">
+      <section class="control-panel request-panel agent-request-row" aria-labelledby="earthRequestTitle">
+        <h3 id="earthRequestTitle">Current Earth Request</h3>
+        <p class="request-text" id="agentRequestText">Waiting for the host to start.</p>
+        <p class="quota-text" id="agentQuotaText">No active quota.</p>
+        <p class="status-line" id="agentSubmissionStatus">No submission yet.</p>
+      </section>
+
+      <section class="manifest-panel" aria-labelledby="manifestTitle">
+        <div class="manifest-toolbar">
+          <div class="manifest-title-row">
+            <h3 id="manifestTitle">Alien Manifest</h3>
+            <div class="connection-pill" id="agentRemainingBadge">Manifest waiting</div>
+            <p class="status-line" id="selectedCountText">0 selected</p>
+          </div>
+          <button class="primary-action send-button" id="sendSelectedButton" disabled>
+            <i class="bi bi-rocket-takeoff"></i>
+            Send Selected
+          </button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Species</th>
+                <th>Eyes</th>
+                <th>Eye colour</th>
+                <th>Tentacles</th>
+                <th>Height</th>
+                <th>Profession</th>
+                <th>Hazard</th>
+                <th>Purpose</th>
+              </tr>
+            </thead>
+            <tbody id="alienTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="control-panel agent-progress-row" aria-labelledby="agentProgressTitle">
+        <h3 id="agentProgressTitle">Agent Progress</h3>
+        <div class="player-list" id="agentPlayerList"></div>
+      </section>
+    </section>
+
+    <section class="screen" id="gameOverScreen" aria-labelledby="gameOverTitle">
+      <div class="game-over-panel">
+        <img class="alien-logo large-logo" src="assets/alien.png" alt="" />
+        <p class="eyebrow">Customs cleared</p>
+        <h2 id="gameOverTitle">Game Over</h2>
+        <p id="gameOverMessage">An agent has cleared customs.</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
+  <script src="scripts.js"></script>
+</body>
+
+</html>
