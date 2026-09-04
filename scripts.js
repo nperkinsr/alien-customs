@@ -60,8 +60,14 @@ var generationSettings = {
   maximumEyes: 8,
   minimumHeightMetres: 0.7,
   maximumHeightMetres: 3,
-  minimumEarthRequestSpaces: 5,
-  maximumEarthRequestSpaces: 10,
+  singleRequestMinimumPercent: 5,
+  singleRequestMaximumPercent: 9,
+  singleRequestMinimumSpaces: 3,
+  singleRequestMaximumSpaces: 18,
+  compoundRequestMinimumPercent: 3,
+  compoundRequestMaximumPercent: 5,
+  compoundRequestMinimumSpaces: 2,
+  compoundRequestMaximumSpaces: 8,
   heightRequestThresholds: [1.2, 1.5, 1.8, 2.0, 2.2]
 };
 var alienDataLoaded = false;
@@ -381,7 +387,7 @@ function generateAlienManifest(totalAliens) {
 //////////       EARTH REQUESTS          ////////////
 /////////////////////////////////////////////////////
 
-function generateEarthRequest() {
+function generateEarthRequest(totalAliensRemaining) {
   var requestTypes = [
     "profession",
     "eyeColour",
@@ -397,14 +403,7 @@ function generateEarthRequest() {
   ];
 
   var requestType = getRandomItem(requestTypes);
-  var spacesAvailable = getRandomInteger(
-    generationSettings.minimumEarthRequestSpaces,
-    generationSettings.maximumEarthRequestSpaces
-  );
-
-  if (isCompoundRequestType(requestType) === true) {
-    spacesAvailable = getRandomInteger(2, 5);
-  }
+  var spacesAvailable = calculateEarthRequestSpaces(totalAliensRemaining, isCompoundRequestType(requestType));
 
   var request = {
     id: makeUniqueId("request"),
@@ -472,7 +471,7 @@ function generateEarthRequest() {
   }
 
   if (requestType === "numberOfEyes") {
-    request.value = getRandomInteger(generationSettings.minimumEyes, generationSettings.maximumEyes);
+    request.value = getRandomEyeCountForRequest();
     request.description = "Earth is accepting " + spacesAvailable + " aliens with " + request.value + " eyes.";
     request.conditions.push({
       trait: "numberOfEyes",
@@ -513,8 +512,7 @@ function generateEarthRequest() {
 
   if (requestType === "dangerousMilitaryProgramme") {
     request.value = "Dangerous";
-    request.spaces = 3;
-    request.description = "Earth urgently requires 3 Dangerous aliens for its military programme.";
+    request.description = "Earth urgently requires " + spacesAvailable + " Dangerous aliens for its military programme.";
     request.conditions.push({
       trait: "hazard",
       comparison: "equals",
@@ -549,6 +547,81 @@ function isCompoundRequestType(requestType) {
   ];
 
   return compoundRequestTypes.indexOf(requestType) !== -1;
+}
+
+function calculateEarthRequestSpaces(totalAliensRemaining, isCompoundRequest) {
+  var minimumPercent = generationSettings.singleRequestMinimumPercent;
+  var maximumPercent = generationSettings.singleRequestMaximumPercent;
+  var minimumSpaces = generationSettings.singleRequestMinimumSpaces;
+  var maximumSpaces = generationSettings.singleRequestMaximumSpaces;
+
+  if (isCompoundRequest === true) {
+    minimumPercent = generationSettings.compoundRequestMinimumPercent;
+    maximumPercent = generationSettings.compoundRequestMaximumPercent;
+    minimumSpaces = generationSettings.compoundRequestMinimumSpaces;
+    maximumSpaces = generationSettings.compoundRequestMaximumSpaces;
+  }
+
+  if (totalAliensRemaining === undefined || totalAliensRemaining <= 0) {
+    return getRandomInteger(minimumSpaces, maximumSpaces);
+  }
+
+  var quotaPercent = getRandomInteger(minimumPercent, maximumPercent);
+  var calculatedSpaces = Math.round(totalAliensRemaining * (quotaPercent / 100));
+
+  return keepNumberInRange(calculatedSpaces, minimumSpaces, Math.min(maximumSpaces, totalAliensRemaining));
+}
+
+function keepNumberInRange(value, minimum, maximum) {
+  if (maximum < minimum) {
+    return maximum;
+  }
+
+  if (value < minimum) {
+    return minimum;
+  }
+
+  if (value > maximum) {
+    return maximum;
+  }
+
+  return value;
+}
+
+function countTotalAliensRemaining() {
+  var totalAliensRemaining = 0;
+  var agentPeerIds = Object.keys(hostGameState.agents);
+
+  for (var index = 0; index < agentPeerIds.length; index = index + 1) {
+    var agentRecord = hostGameState.agents[agentPeerIds[index]];
+    totalAliensRemaining = totalAliensRemaining + agentRecord.remainingAlienIds.length;
+  }
+
+  return totalAliensRemaining;
+}
+
+function getRandomEyeCountForRequest() {
+  var availableEyeCounts = [];
+  var agentPeerIds = Object.keys(hostGameState.agents);
+
+  for (var agentIndex = 0; agentIndex < agentPeerIds.length; agentIndex = agentIndex + 1) {
+    var agentRecord = hostGameState.agents[agentPeerIds[agentIndex]];
+
+    for (var alienIndex = 0; alienIndex < agentRecord.aliens.length; alienIndex = alienIndex + 1) {
+      var alien = agentRecord.aliens[alienIndex];
+      var alienIsStillInPlay = agentRecord.remainingAlienIds.indexOf(alien.id) !== -1;
+
+      if (alienIsStillInPlay === true && availableEyeCounts.indexOf(alien.numberOfEyes) === -1) {
+        availableEyeCounts.push(alien.numberOfEyes);
+      }
+    }
+  }
+
+  if (availableEyeCounts.length === 0) {
+    return getRandomInteger(generationSettings.minimumEyes, generationSettings.maximumEyes);
+  }
+
+  return getRandomItem(availableEyeCounts);
 }
 
 function getRandomAlienNameFirstLetter() {
@@ -641,22 +714,7 @@ function doesAlienMatchCondition(alien, condition) {
     return String(alienValue).charAt(0).toUpperCase() === condition.value;
   }
 
-  if (condition.comparison === "atLeast" && condition.trait === "hazard") {
-    return isHazardAtLeast(alienValue, condition.value);
-  }
-
   return false;
-}
-
-function isHazardAtLeast(alienHazard, minimumHazard) {
-  var alienHazardIndex = hazards.indexOf(alienHazard);
-  var minimumHazardIndex = hazards.indexOf(minimumHazard);
-
-  if (alienHazardIndex === -1 || minimumHazardIndex === -1) {
-    return false;
-  }
-
-  return alienHazardIndex >= minimumHazardIndex;
 }
 
 function getQuotaText(remainingSpaces) {
@@ -816,7 +874,7 @@ function hostGenerateRequest() {
     return;
   }
 
-  hostGameState.currentRequest = generateEarthRequest();
+  hostGameState.currentRequest = generateEarthRequest(countTotalAliensRemaining());
   hostGameState.remainingSpaces = hostGameState.currentRequest.spaces;
   hostGameState.currentRequestSubmissions = {};
 
@@ -845,8 +903,7 @@ function processAgentSubmission(agentPeerId, submittedAlienIds) {
   var rejectedAlienIds = [];
   var rejectionReasons = [];
   var spacesAtStart = hostGameState.remainingSpaces;
-  var agentHadOneAlienBeforeSubmission = agentRecord.remainingAlienIds.length === 1;
-  var lastAlienDidNotMatchRequest = false;
+  var batchContainedIncorrectAlien = false;
   var newAlienPenalty = null;
 
   if (hostGameState.gameOver === true) {
@@ -872,7 +929,7 @@ function processAgentSubmission(agentPeerId, submittedAlienIds) {
 
     if (doesAlienMatchRequest(alien, hostGameState.currentRequest) === false) {
       rejectedAlienIds.push(alienId);
-      lastAlienDidNotMatchRequest = true;
+      batchContainedIncorrectAlien = true;
       addReasonIfMissing(rejectionReasons, "Some aliens did not match the Earth request.");
       continue;
     }
@@ -900,38 +957,14 @@ function processAgentSubmission(agentPeerId, submittedAlienIds) {
     rejectionReasons.push("No aliens were selected.");
   }
 
-  if (shouldAddEndgamePenaltyAlien(agentHadOneAlienBeforeSubmission, submittedAlienIds, acceptedAlienIds, rejectedAlienIds, lastAlienDidNotMatchRequest) === true) {
+  if (batchContainedIncorrectAlien === true) {
     newAlienPenalty = addPenaltyAlienToAgent(agentRecord);
-    addReasonIfMissing(rejectionReasons, "Endgame penalty: one new alien joined your queue.");
+    addReasonIfMissing(rejectionReasons, "Penalty: one new alien joined your queue.");
   }
 
   recordHostSubmission(agentRecord, submittedAlienIds.length, acceptedAlienIds.length);
   sendSubmissionResult(agentRecord, acceptedAlienIds, rejectedAlienIds, rejectionReasons.join(" "), newAlienPenalty);
   updateHostAfterSubmission(agentRecord, acceptedAlienIds.length);
-}
-
-function shouldAddEndgamePenaltyAlien(agentHadOneAlienBeforeSubmission, submittedAlienIds, acceptedAlienIds, rejectedAlienIds, lastAlienDidNotMatchRequest) {
-  if (agentHadOneAlienBeforeSubmission === false) {
-    return false;
-  }
-
-  if (submittedAlienIds.length !== 1) {
-    return false;
-  }
-
-  if (acceptedAlienIds.length > 0) {
-    return false;
-  }
-
-  if (rejectedAlienIds.length !== 1) {
-    return false;
-  }
-
-  if (lastAlienDidNotMatchRequest === false) {
-    return false;
-  }
-
-  return true;
 }
 
 function addPenaltyAlienToAgent(agentRecord) {
@@ -941,20 +974,6 @@ function addPenaltyAlienToAgent(agentRecord) {
   agentRecord.remainingAlienIds.push(newAlien.id);
 
   return newAlien;
-}
-
-function getRemainingAliensForAgent(agentRecord) {
-  var remainingAliens = [];
-
-  for (var index = 0; index < agentRecord.aliens.length; index = index + 1) {
-    var alien = agentRecord.aliens[index];
-
-    if (agentRecord.remainingAlienIds.indexOf(alien.id) !== -1) {
-      remainingAliens.push(alien);
-    }
-  }
-
-  return remainingAliens;
 }
 
 function recordHostSubmission(agentRecord, sentCount, acceptedCount) {
@@ -1255,12 +1274,15 @@ function receiveMessageAsAgent(message) {
   }
 
   if (message.type === "earth-request") {
+    selectedAlienIds = [];
     agentRequestText.textContent = message.request.description;
     flashRequirementText(agentRequestText);
     agentQuotaText.textContent = getQuotaText(message.remainingSpaces);
     agentSubmissionStatus.textContent = "Select matching aliens and send them to customs.";
     showAgentRoundDetails();
+    renderAlienTable();
     renderAgentProgress(message.progress);
+    updateSelectedCount();
     updateSendButtonState(message.remainingSpaces);
   }
 
