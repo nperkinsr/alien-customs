@@ -48,6 +48,12 @@
         </div>
 
         <div class="action-panel">
+          <div class="help-action-row">
+            <button class="secondary-action icon-action" id="howToPlayButton" type="button" aria-label="How to play" title="How to play">
+              <i class="bi bi-info-circle"></i>
+            </button>
+          </div>
+
           <button class="primary-action" id="createGameButton">
             Create Game
           </button>
@@ -190,6 +196,75 @@
       </div>
     </section>
   </main>
+
+  <div class="modal-backdrop" id="howToPlayModal" hidden>
+    <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="howToPlayTitle">
+      <div class="modal-header">
+        <h2 id="howToPlayTitle">How to Play</h2>
+        <button class="secondary-action icon-action" id="closeHowToPlayButton" type="button" aria-label="Close how to play" title="Close">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <div class="modal-content">
+        <p>
+          Welcome to the <strong>Interplanetary Customs Agency</strong>, agent. Your first assignment is to process a queue of aliens waiting to travel to Earth.
+        </p>
+
+        <h3>Your objective</h3>
+        <p>
+          You will begin the game with <strong>20 aliens</strong> in your queue. Each alien has a different combination of traits, such as name, species, eye colour, number of eyes, tentacles, height, profession, hazard level and purpose of visit.
+        </p>
+        <p>
+          Your goal is to successfully send every alien in your queue to Earth. The first agent to clear their entire queue wins and gets to take the rest of the day off.
+        </p>
+
+        <h3>Earth's requests</h3>
+        <p>
+          During each round, Earth will request a limited number of aliens with specific traits. For example:
+        </p>
+        <blockquote>Send 10 aliens with green eyes who are taller than two metres.</blockquote>
+        <p>
+          Check the request carefully. An alien must meet <strong>all</strong> the listed requirements to be accepted.
+        </p>
+
+        <h3>Sending aliens</h3>
+        <ol>
+          <li>Search your queue for aliens who match Earth's request.</li>
+          <li>Click an alien to select them. You can select more than one.</li>
+          <li>Click <strong>Send Selected</strong> in the top-right corner.</li>
+        </ol>
+        <p>
+          Matching aliens will be sent to Earth and removed from your queue, provided that the quota has not already been filled.
+        </p>
+        <img class="how-to-image" src="assets/selecting-aliens.gif" alt="Example alien queue with selected aliens and the Send Selected button." />
+
+        <h3>The quota is shared</h3>
+        <p>
+          Earth's quota is shared between <strong>all players</strong>. If Earth requests 10 aliens, it wants 10 aliens in total, not 10 from each player. Once other agents have filled the quota, no more aliens can be accepted during that round.
+        </p>
+        <p>You will need to act quickly.</p>
+
+        <h3>Choose your strategy</h3>
+        <p>
+          You can select several matching aliens and send them together, but another player might fill the quota while you are still making your selections. Alternatively, you can send aliens individually or in smaller groups. This may get them through sooner, but it requires more clicks.
+        </p>
+        <p>The strategy is up to you.</p>
+
+        <h3>Incorrect submissions</h3>
+        <p>Be careful when selecting your aliens.</p>
+        <p>
+          If an alien does not meet <strong>all</strong> of Earth's requirements, the alien will be rejected and remain in your queue. A new alien will be added to your queue as a penalty.
+        </p>
+        <p>The more mistakes you make, the more aliens you will need to process before you can win.</p>
+
+        <h3>Winning the game</h3>
+        <p>
+          The first agent to successfully send every alien in their queue to Earth wins the game.
+        </p>
+      </div>
+    </section>
+  </div>
 
   <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <script src="scripts.js"></script>

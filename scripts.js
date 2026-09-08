@@ -15,10 +15,13 @@
 var createGameButton = document.getElementById("createGameButton");
 var showJoinFormButton = document.getElementById("showJoinFormButton");
 var backToWelcomeFromJoinButton = document.getElementById("backToWelcomeFromJoinButton");
+var howToPlayButton = document.getElementById("howToPlayButton");
 var joinForm = document.getElementById("joinForm");
 var agentNameInput = document.getElementById("agentNameInput");
 var hostIdInput = document.getElementById("hostIdInput");
 var connectionStatus = document.getElementById("connectionStatus");
+var howToPlayModal = document.getElementById("howToPlayModal");
+var closeHowToPlayButton = document.getElementById("closeHowToPlayButton");
 
 var welcomeScreen = document.getElementById("welcomeScreen");
 var hostScreen = document.getElementById("hostScreen");
@@ -218,6 +221,16 @@ function hideHostQuota() {
 
 function showHostQuota() {
   hostQuotaText.classList.remove("hidden");
+}
+
+function openHowToPlayModal() {
+  howToPlayModal.hidden = false;
+  closeHowToPlayButton.focus();
+}
+
+function closeHowToPlayModal() {
+  howToPlayModal.hidden = true;
+  howToPlayButton.focus();
 }
 
 function returnToMainPage() {
@@ -1603,6 +1616,26 @@ document.addEventListener("click", function(event) {
   }
 
   playButtonClickSound();
+});
+
+document.addEventListener("keydown", function(event) {
+  if (event.key === "Escape" && howToPlayModal.hidden === false) {
+    closeHowToPlayModal();
+  }
+});
+
+howToPlayModal.addEventListener("click", function(event) {
+  if (event.target === howToPlayModal) {
+    closeHowToPlayModal();
+  }
+});
+
+howToPlayButton.addEventListener("click", function() {
+  openHowToPlayModal();
+});
+
+closeHowToPlayButton.addEventListener("click", function() {
+  closeHowToPlayModal();
 });
 
 createGameButton.addEventListener("click", function() {
