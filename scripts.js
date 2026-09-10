@@ -66,7 +66,7 @@ var generationSettings = {
   singleRequestMinimumPercent: 5,
   singleRequestMaximumPercent: 9,
   singleRequestMinimumSpaces: 3,
-  singleRequestMaximumSpaces: 18,
+  singleRequestMaximumSpaces: 20,
   compoundRequestMinimumPercent: 3,
   compoundRequestMaximumPercent: 5,
   compoundRequestMinimumSpaces: 2,
