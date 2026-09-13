@@ -50,6 +50,9 @@ var sendSelectedButton = document.getElementById("sendSelectedButton");
 var alienTableBody = document.getElementById("alienTableBody");
 var gameOverMainPageButton = document.getElementById("gameOverMainPageButton");
 var gameOverMessage = document.getElementById("gameOverMessage");
+var gameOverStandings = document.getElementById("gameOverStandings");
+var requestCountdownOverlay = document.getElementById("requestCountdownOverlay");
+var requestCountdownNumber = document.getElementById("requestCountdownNumber");
 
 var alienNames = [];
 var alienSpecies = [];
@@ -81,6 +84,7 @@ var currentRole = "";
 var currentAgentName = "";
 var localAgentAliens = [];
 var selectedAlienIds = [];
+var requestCountdownTimer = null;
 var buttonClickSound = new Audio("assets/sounds/buttonClick.mp3");
 var alienSelectSound = new Audio("assets/sounds/alien-select.mp3");
 buttonClickSound.preload = "auto";
@@ -223,6 +227,26 @@ function showHostQuota() {
   hostQuotaText.classList.remove("hidden");
 }
 
+function showRequestCountdown(count) {
+  requestCountdownNumber.textContent = count;
+  requestCountdownOverlay.hidden = false;
+}
+
+function hideRequestCountdown() {
+  requestCountdownOverlay.hidden = true;
+}
+
+function clearRequestCountdownTimer() {
+  if (requestCountdownTimer !== null) {
+    window.clearTimeout(requestCountdownTimer);
+    requestCountdownTimer = null;
+  }
+}
+
+function clearGameOverStandings() {
+  gameOverStandings.innerHTML = "";
+}
+
 function openHowToPlayModal() {
   howToPlayModal.hidden = false;
   closeHowToPlayButton.focus();
@@ -251,6 +275,9 @@ function returnToMainPage() {
   currentAgentName = "";
   localAgentAliens = [];
   selectedAlienIds = [];
+  clearRequestCountdownTimer();
+  hideRequestCountdown();
+  clearGameOverStandings();
   hostGameState = makeEmptyHostGameState();
 
   hostRoomId.textContent = "----";
@@ -346,6 +373,10 @@ function getRandomItem(list) {
   return list[randomIndex];
 }
 
+function getRandomBoolean() {
+  return Math.random() >= 0.5;
+}
+
 function makeRoomId() {
   var roomCharacters = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   var roomCode = "AC-";
@@ -360,6 +391,49 @@ function makeRoomId() {
 function makeUniqueId(prefix) {
   var randomNumber = Math.floor(Math.random() * 1000000000);
   return prefix + "-" + Date.now() + "-" + randomNumber;
+}
+
+function makeTextPart(text) {
+  return {
+    text: String(text),
+    highlight: false
+  };
+}
+
+function makeHighlightPart(text) {
+  return {
+    text: String(text),
+    highlight: true
+  };
+}
+
+function setRequestDescription(request, parts) {
+  request.descriptionParts = parts;
+  request.description = parts.map(function(part) {
+    return part.text;
+  }).join("");
+}
+
+function renderRequestText(requestElement, request) {
+  if (request.descriptionParts === undefined) {
+    requestElement.textContent = request.description;
+    return;
+  }
+
+  requestElement.innerHTML = "";
+
+  for (var index = 0; index < request.descriptionParts.length; index = index + 1) {
+    var part = request.descriptionParts[index];
+    var span = document.createElement("span");
+
+    span.textContent = part.text;
+
+    if (part.highlight === true) {
+      span.className = "request-highlight";
+    }
+
+    requestElement.appendChild(span);
+  }
 }
 
 /////////////////////////////////////////////////////
@@ -418,6 +492,10 @@ function generateEarthRequest(totalAliensRemaining) {
   var requestType = getRandomItem(requestTypes);
   var spacesAvailable = calculateEarthRequestSpaces(totalAliensRemaining, isCompoundRequestType(requestType));
 
+  if (requestType === "nameStartsWith") {
+    spacesAvailable = reduceNameInitialRequestSpaces(spacesAvailable);
+  }
+
   var request = {
     id: makeUniqueId("request"),
     type: requestType,
@@ -429,7 +507,23 @@ function generateEarthRequest(totalAliensRemaining) {
 
   if (requestType === "profession") {
     request.value = getRandomItem(professions);
-    request.description = "Earth is accepting " + spacesAvailable + " " + request.value + "s.";
+    if (getRandomBoolean() === true) {
+      setRequestDescription(request, [
+        makeTextPart("Send "),
+        makeHighlightPart(spacesAvailable),
+        makeTextPart(" aliens registered as "),
+        makeHighlightPart(request.value),
+        makeTextPart(" for a job fair.")
+      ]);
+    } else {
+      setRequestDescription(request, [
+        makeTextPart("Earth is celebrating "),
+        makeHighlightPart(request.value),
+        makeTextPart(" Appreciation Day. Send "),
+        makeHighlightPart(spacesAvailable),
+        makeTextPart(" aliens.")
+      ]);
+    }
     request.conditions.push({
       trait: "profession",
       comparison: "equals",
@@ -439,7 +533,25 @@ function generateEarthRequest(totalAliensRemaining) {
 
   if (requestType === "eyeColour") {
     request.value = getRandomItem(eyeColours);
-    request.description = "Earth is accepting " + spacesAvailable + " aliens with " + request.value.toLowerCase() + " eyes.";
+    var requestedEyeColourText = request.value.toLowerCase() + " eyes";
+
+    if (getRandomBoolean() === true) {
+      setRequestDescription(request, [
+        makeTextPart("Send "),
+        makeHighlightPart(spacesAvailable),
+        makeTextPart(" aliens with "),
+        makeHighlightPart(requestedEyeColourText),
+        makeTextPart(" for biometric testing.")
+      ]);
+    } else {
+      setRequestDescription(request, [
+        makeTextPart("A film studio on Earth requests "),
+        makeHighlightPart(spacesAvailable),
+        makeTextPart(" aliens with "),
+        makeHighlightPart(requestedEyeColourText),
+        makeTextPart(".")
+      ]);
+    }
     request.conditions.push({
       trait: "eyeColour",
       comparison: "equals",
@@ -449,17 +561,71 @@ function generateEarthRequest(totalAliensRemaining) {
 
   if (requestType === "heightGreaterThan") {
     request.value = getRandomItem(generationSettings.heightRequestThresholds);
-    request.description = "Earth is accepting " + spacesAvailable + " aliens taller than " + request.value + " metres.";
+    var isTallerThanRequest = getRandomBoolean();
+
+    if (isTallerThanRequest === true) {
+      if (getRandomBoolean() === true) {
+        setRequestDescription(request, [
+          makeTextPart("Earth's basketball team needs "),
+          makeHighlightPart(spacesAvailable),
+          makeTextPart(" aliens taller than "),
+          makeHighlightPart(request.value + " metres"),
+          makeTextPart(".")
+        ]);
+      } else {
+        setRequestDescription(request, [
+          makeTextPart("Earth needs "),
+          makeHighlightPart(spacesAvailable),
+          makeTextPart(" aliens over "),
+          makeHighlightPart(request.value + " metres"),
+          makeTextPart(" to retrieve a stranded cat.")
+        ]);
+      }
+    } else {
+      if (getRandomBoolean() === true) {
+        setRequestDescription(request, [
+          makeTextPart("The ceilings are unusually low. Send "),
+          makeHighlightPart(spacesAvailable),
+          makeTextPart(" aliens shorter than "),
+          makeHighlightPart(request.value + " metres"),
+          makeTextPart(".")
+        ]);
+      } else {
+        setRequestDescription(request, [
+          makeTextPart("The crawl-space inspection requires "),
+          makeHighlightPart(spacesAvailable),
+          makeTextPart(" aliens under "),
+          makeHighlightPart(request.value + " metres"),
+          makeTextPart(".")
+        ]);
+      }
+    }
     request.conditions.push({
       trait: "height",
-      comparison: "greaterThan",
+      comparison: isTallerThanRequest ? "greaterThan" : "lessThan",
       value: request.value
     });
   }
 
   if (requestType === "species") {
     request.value = getRandomItem(alienSpecies);
-    request.description = "Earth is accepting " + spacesAvailable + " " + request.value + "s.";
+    if (getRandomBoolean() === true) {
+      setRequestDescription(request, [
+        makeTextPart("The officer who is frightened of the "),
+        makeHighlightPart(request.value),
+        makeTextPart(" has gone to lunch. Quickly send "),
+        makeHighlightPart(spacesAvailable),
+        makeTextPart(" aliens.")
+      ]);
+    } else {
+      setRequestDescription(request, [
+        makeTextPart("The quarantine restrictions affecting the "),
+        makeHighlightPart(request.value),
+        makeTextPart(" have been lifted. Send "),
+        makeHighlightPart(spacesAvailable),
+        makeTextPart(" aliens.")
+      ]);
+    }
     request.conditions.push({
       trait: "species",
       comparison: "equals",
@@ -468,12 +634,42 @@ function generateEarthRequest(totalAliensRemaining) {
   }
 
   if (requestType === "hasTentacles") {
-    request.value = Math.random() >= 0.5;
+    request.value = getRandomBoolean();
 
     if (request.value === true) {
-      request.description = "Earth is accepting " + spacesAvailable + " aliens with tentacles.";
+      if (getRandomBoolean() === true) {
+        setRequestDescription(request, [
+          makeTextPart("Earth needs help untangling cables. Send "),
+          makeHighlightPart(spacesAvailable),
+          makeTextPart(" aliens "),
+          makeHighlightPart("with tentacles"),
+          makeTextPart(".")
+        ]);
+      } else {
+        setRequestDescription(request, [
+          makeTextPart("A jar-opening emergency requires "),
+          makeHighlightPart(spacesAvailable + " tentacled"),
+          makeTextPart(" aliens.")
+        ]);
+      }
     } else {
-      request.description = "Earth is accepting " + spacesAvailable + " aliens without tentacles.";
+      if (getRandomBoolean() === true) {
+        setRequestDescription(request, [
+          makeTextPart("Customs has declared a "),
+          makeHighlightPart("tentacle-free"),
+          makeTextPart(" day. Send "),
+          makeHighlightPart(spacesAvailable),
+          makeTextPart(" aliens.")
+        ]);
+      } else {
+        setRequestDescription(request, [
+          makeTextPart("Earth's new uniforms have "),
+          makeHighlightPart("no tentacle"),
+          makeTextPart(" holes. Send "),
+          makeHighlightPart(spacesAvailable),
+          makeTextPart(" suitable aliens.")
+        ]);
+      }
     }
 
     request.conditions.push({
@@ -485,7 +681,23 @@ function generateEarthRequest(totalAliensRemaining) {
 
   if (requestType === "numberOfEyes") {
     request.value = getRandomEyeCountForRequest();
-    request.description = "Earth is accepting " + spacesAvailable + " aliens with " + request.value + " eyes.";
+    if (getRandomBoolean() === true) {
+      setRequestDescription(request, [
+        makeTextPart("Our eye-counting machine is calibrated to "),
+        makeHighlightPart(request.value),
+        makeTextPart(". Send "),
+        makeHighlightPart(spacesAvailable),
+        makeTextPart(" compatible aliens.")
+      ]);
+    } else {
+      setRequestDescription(request, [
+        makeTextPart("The Department of Vision requires "),
+        makeHighlightPart(spacesAvailable),
+        makeTextPart(" visitors whose eye count is exactly "),
+        makeHighlightPart(request.value),
+        makeTextPart(".")
+      ]);
+    }
     request.conditions.push({
       trait: "numberOfEyes",
       comparison: "equals",
@@ -494,8 +706,28 @@ function generateEarthRequest(totalAliensRemaining) {
   }
 
   if (requestType === "nameStartsWith") {
-    request.value = getRandomAlienNameFirstLetter();
-    request.description = "Earth is accepting " + spacesAvailable + " aliens whose name starts with " + request.value + ".";
+    request.value = getRandomAlienNameFirstLetterForRequest();
+    spacesAvailable = Math.min(spacesAvailable, countRemainingAliensWithNameInitial(request.value));
+    request.spaces = spacesAvailable;
+    if (getRandomBoolean() === true) {
+      setRequestDescription(request, [
+        makeTextPart("Terminal "),
+        makeHighlightPart(request.value),
+        makeTextPart(" is unusually empty. Send "),
+        makeHighlightPart(spacesAvailable),
+        makeTextPart(" aliens whose names begin with "),
+        makeHighlightPart(request.value),
+        makeTextPart(".")
+      ]);
+    } else {
+      setRequestDescription(request, [
+        makeTextPart("Earth requires "),
+        makeHighlightPart(spacesAvailable),
+        makeTextPart(" more aliens for the "),
+        makeHighlightPart(request.value),
+        makeTextPart(" section of the telephone directory.")
+      ]);
+    }
     request.conditions.push({
       trait: "name",
       comparison: "startsWith",
@@ -505,7 +737,23 @@ function generateEarthRequest(totalAliensRemaining) {
 
   if (requestType === "hazard") {
     request.value = getRandomItem(hazards);
-    request.description = "Earth is accepting " + spacesAvailable + " aliens marked " + request.value + " level.";
+    if (getRandomBoolean() === true) {
+      setRequestDescription(request, [
+        makeTextPart("Earth has approved entry for "),
+        makeHighlightPart(spacesAvailable),
+        makeTextPart(" aliens classified as "),
+        makeHighlightPart(request.value),
+        makeTextPart(".")
+      ]);
+    } else {
+      setRequestDescription(request, [
+        makeTextPart("The hazard scanner is set to "),
+        makeHighlightPart(request.value),
+        makeTextPart(". Send "),
+        makeHighlightPart(spacesAvailable),
+        makeTextPart(" aliens.")
+      ]);
+    }
     request.conditions.push({
       trait: "hazard",
       comparison: "equals",
@@ -515,7 +763,23 @@ function generateEarthRequest(totalAliensRemaining) {
 
   if (requestType === "purpose") {
     request.value = getRandomItem(purposes);
-    request.description = "Earth is accepting " + spacesAvailable + " aliens coming for " + request.value + ".";
+    if (getRandomBoolean() === true) {
+      setRequestDescription(request, [
+        makeTextPart("The '"),
+        makeHighlightPart(request.value),
+        makeTextPart("' arrivals desk is open. Send "),
+        makeHighlightPart(spacesAvailable),
+        makeTextPart(" aliens.")
+      ]);
+    } else {
+      setRequestDescription(request, [
+        makeTextPart("The visa printer is producing only '"),
+        makeHighlightPart(request.value),
+        makeTextPart("' permits. Send "),
+        makeHighlightPart(spacesAvailable),
+        makeTextPart(" aliens.")
+      ]);
+    }
     request.conditions.push({
       trait: "purpose",
       comparison: "equals",
@@ -525,7 +789,11 @@ function generateEarthRequest(totalAliensRemaining) {
 
   if (requestType === "dangerousMilitaryProgramme") {
     request.value = "Dangerous";
-    request.description = "Earth urgently requires " + spacesAvailable + " Dangerous aliens for its military programme.";
+    setRequestDescription(request, [
+      makeTextPart("Earth urgently requires "),
+      makeHighlightPart(spacesAvailable + " Dangerous"),
+      makeTextPart(" aliens for its military programme.")
+    ]);
     request.conditions.push({
       trait: "hazard",
       comparison: "equals",
@@ -536,9 +804,51 @@ function generateEarthRequest(totalAliensRemaining) {
   if (requestType === "eyeColourAndHeight") {
     var requestedEyeColour = getRandomItem(eyeColours);
     var requestedHeight = getRandomItem(generationSettings.heightRequestThresholds);
+    var compoundIsTallerThan = getRandomBoolean();
+    var requestedEyeColourLower = requestedEyeColour.toLowerCase();
 
     request.value = requestedEyeColour;
-    request.description = "Earth requests " + spacesAvailable + " aliens with " + requestedEyeColour.toLowerCase() + " eyes taller than " + requestedHeight + " metres.";
+    if (compoundIsTallerThan === true) {
+      if (getRandomBoolean() === true) {
+        setRequestDescription(request, [
+          makeTextPart("Biometric testing needs "),
+          makeHighlightPart(spacesAvailable + " " + requestedEyeColourLower + "-eyed"),
+          makeTextPart(" aliens taller than "),
+          makeHighlightPart(requestedHeight + " metres"),
+          makeTextPart(".")
+        ]);
+      } else {
+        setRequestDescription(request, [
+          makeTextPart("The new scanners need "),
+          makeHighlightPart(spacesAvailable),
+          makeTextPart(" aliens with "),
+          makeHighlightPart(requestedEyeColourLower + " eyes"),
+          makeTextPart(" over "),
+          makeHighlightPart(requestedHeight + " metres"),
+          makeTextPart(".")
+        ]);
+      }
+    } else {
+      if (getRandomBoolean() === true) {
+        setRequestDescription(request, [
+          makeTextPart("The compact scanners need "),
+          makeHighlightPart(spacesAvailable),
+          makeTextPart(" aliens with "),
+          makeHighlightPart(requestedEyeColourLower + " eyes"),
+          makeTextPart(" under "),
+          makeHighlightPart(requestedHeight + " metres"),
+          makeTextPart(".")
+        ]);
+      } else {
+        setRequestDescription(request, [
+          makeTextPart("The tunnel team needs "),
+          makeHighlightPart(spacesAvailable + " " + requestedEyeColourLower + "-eyed"),
+          makeTextPart(" aliens shorter than "),
+          makeHighlightPart(requestedHeight + " metres"),
+          makeTextPart(".")
+        ]);
+      }
+    }
     request.conditions.push({
       trait: "eyeColour",
       comparison: "equals",
@@ -546,7 +856,7 @@ function generateEarthRequest(totalAliensRemaining) {
     });
     request.conditions.push({
       trait: "height",
-      comparison: "greaterThan",
+      comparison: compoundIsTallerThan ? "greaterThan" : "lessThan",
       value: requestedHeight
     });
   }
@@ -583,6 +893,10 @@ function calculateEarthRequestSpaces(totalAliensRemaining, isCompoundRequest) {
   var calculatedSpaces = Math.round(totalAliensRemaining * (quotaPercent / 100));
 
   return keepNumberInRange(calculatedSpaces, minimumSpaces, Math.min(maximumSpaces, totalAliensRemaining));
+}
+
+function reduceNameInitialRequestSpaces(spacesAvailable) {
+  return Math.max(1, Math.ceil(spacesAvailable / 2));
 }
 
 function keepNumberInRange(value, minimum, maximum) {
@@ -635,6 +949,51 @@ function getRandomEyeCountForRequest() {
   }
 
   return getRandomItem(availableEyeCounts);
+}
+
+function getRandomAlienNameFirstLetterForRequest() {
+  var availableLetters = [];
+  var agentPeerIds = Object.keys(hostGameState.agents);
+
+  for (var agentIndex = 0; agentIndex < agentPeerIds.length; agentIndex = agentIndex + 1) {
+    var agentRecord = hostGameState.agents[agentPeerIds[agentIndex]];
+
+    for (var alienIndex = 0; alienIndex < agentRecord.aliens.length; alienIndex = alienIndex + 1) {
+      var alien = agentRecord.aliens[alienIndex];
+      var alienIsStillInPlay = agentRecord.remainingAlienIds.indexOf(alien.id) !== -1;
+      var firstLetter = alien.name.charAt(0).toUpperCase();
+
+      if (alienIsStillInPlay === true && firstLetter.length > 0 && availableLetters.indexOf(firstLetter) === -1) {
+        availableLetters.push(firstLetter);
+      }
+    }
+  }
+
+  if (availableLetters.length === 0) {
+    return getRandomAlienNameFirstLetter();
+  }
+
+  return getRandomItem(availableLetters);
+}
+
+function countRemainingAliensWithNameInitial(initial) {
+  var matchingAliens = 0;
+  var agentPeerIds = Object.keys(hostGameState.agents);
+
+  for (var agentIndex = 0; agentIndex < agentPeerIds.length; agentIndex = agentIndex + 1) {
+    var agentRecord = hostGameState.agents[agentPeerIds[agentIndex]];
+
+    for (var alienIndex = 0; alienIndex < agentRecord.aliens.length; alienIndex = alienIndex + 1) {
+      var alien = agentRecord.aliens[alienIndex];
+      var alienIsStillInPlay = agentRecord.remainingAlienIds.indexOf(alien.id) !== -1;
+
+      if (alienIsStillInPlay === true && alien.name.charAt(0).toUpperCase() === initial) {
+        matchingAliens = matchingAliens + 1;
+      }
+    }
+  }
+
+  return matchingAliens;
 }
 
 function getRandomAlienNameFirstLetter() {
@@ -723,6 +1082,10 @@ function doesAlienMatchCondition(alien, condition) {
     return alienValue > condition.value;
   }
 
+  if (condition.comparison === "lessThan") {
+    return alienValue < condition.value;
+  }
+
   if (condition.comparison === "startsWith") {
     return String(alienValue).charAt(0).toUpperCase() === condition.value;
   }
@@ -740,6 +1103,14 @@ function getQuotaText(remainingSpaces) {
   }
 
   return remainingSpaces + " spaces remaining";
+}
+
+function getAliensLeftText(remainingAliens) {
+  if (remainingAliens === 1) {
+    return "1 alien left";
+  }
+
+  return remainingAliens + " aliens left";
 }
 
 /////////////////////////////////////////////////////
@@ -887,11 +1258,51 @@ function hostGenerateRequest() {
     return;
   }
 
+  if (requestCountdownTimer !== null) {
+    return;
+  }
+
+  startEarthRequestCountdown();
+}
+
+function startEarthRequestCountdown() {
+  clearRequestCountdownTimer();
+  hostGameState.currentRequest = null;
+  hostGameState.remainingSpaces = 0;
+  hostGameState.currentRequestSubmissions = {};
+  generateRequestButton.disabled = true;
+  hostRequestText.textContent = "New Earth request incoming.";
+  hideHostQuota();
+  renderHostSubmissionList();
+  showTemporaryHostStatus("New Earth request in 3 seconds.");
+  runEarthRequestCountdown(3);
+}
+
+function runEarthRequestCountdown(count) {
+  showRequestCountdown(count);
+  broadcastEarthRequestCountdown(count);
+
+  if (count > 1) {
+    requestCountdownTimer = window.setTimeout(function() {
+      runEarthRequestCountdown(count - 1);
+    }, 1000);
+    return;
+  }
+
+  requestCountdownTimer = window.setTimeout(function() {
+    requestCountdownTimer = null;
+    publishNewEarthRequest();
+  }, 1000);
+}
+
+function publishNewEarthRequest() {
+  hideRequestCountdown();
   hostGameState.currentRequest = generateEarthRequest(countTotalAliensRemaining());
   hostGameState.remainingSpaces = hostGameState.currentRequest.spaces;
   hostGameState.currentRequestSubmissions = {};
+  generateRequestButton.disabled = hostGameState.gameOver === true;
 
-  hostRequestText.textContent = hostGameState.currentRequest.description;
+  renderRequestText(hostRequestText, hostGameState.currentRequest);
   flashRequirementText(hostRequestText);
   hostQuotaText.textContent = getQuotaText(hostGameState.remainingSpaces);
   showHostQuota();
@@ -1067,19 +1478,34 @@ function updateHostAfterSubmission(agentRecord, acceptedCount) {
 
 function declareWinner(winnerName) {
   hostGameState.gameOver = true;
+  clearRequestCountdownTimer();
+  hideRequestCountdown();
   generateRequestButton.disabled = true;
   startGameButton.disabled = true;
 
   var winningMessage = "AGENT " + winnerName.toUpperCase() + " HAS CLEARED CUSTOMS!";
+  var finalStandings = buildFinalStandings();
   gameOverMessage.textContent = winningMessage;
+  renderGameOverStandings(finalStandings);
   setConnectionStatus("Game over");
   showOnlyScreen(gameOverScreen);
 
   broadcastToAgents({
     type: "game-over",
     message: winningMessage,
+    standings: finalStandings,
     progress: buildPublicProgressList()
   });
+}
+
+function buildFinalStandings() {
+  var standings = buildPublicProgressList().slice();
+
+  standings.sort(function(firstPlayer, secondPlayer) {
+    return firstPlayer.remainingAliens - secondPlayer.remainingAliens;
+  });
+
+  return standings;
 }
 
 function resetGameAsHost() {
@@ -1104,6 +1530,9 @@ function finishHostReset() {
     peer.destroy();
   }
 
+  clearRequestCountdownTimer();
+  hideRequestCountdown();
+  clearGameOverStandings();
   peer = null;
   hostConnection = null;
   currentRole = "";
@@ -1132,6 +1561,9 @@ function resetAgentAfterHostReset(message) {
     peer.destroy();
   }
 
+  clearRequestCountdownTimer();
+  hideRequestCountdown();
+  clearGameOverStandings();
   peer = null;
   hostConnection = null;
   currentRole = "";
@@ -1183,6 +1615,13 @@ function broadcastToAgents(message) {
       agentRecord.connection.send(message);
     }
   }
+}
+
+function broadcastEarthRequestCountdown(count) {
+  broadcastToAgents({
+    type: "earth-request-countdown",
+    count: count
+  });
 }
 
 function broadcastRequestToAgents() {
@@ -1286,9 +1725,22 @@ function receiveMessageAsAgent(message) {
     updateSelectedCount();
   }
 
-  if (message.type === "earth-request") {
+  if (message.type === "earth-request-countdown") {
     selectedAlienIds = [];
-    agentRequestText.textContent = message.request.description;
+    agentRequestText.textContent = "New Earth request incoming.";
+    agentQuotaText.textContent = "No active quota.";
+    agentSubmissionStatus.textContent = "Get ready.";
+    hideAgentRoundDetails();
+    renderAlienTable();
+    updateSelectedCount();
+    sendSelectedButton.disabled = true;
+    showRequestCountdown(message.count);
+  }
+
+  if (message.type === "earth-request") {
+    hideRequestCountdown();
+    selectedAlienIds = [];
+    renderRequestText(agentRequestText, message.request);
     flashRequirementText(agentRequestText);
     agentQuotaText.textContent = getQuotaText(message.remainingSpaces);
     agentSubmissionStatus.textContent = "Select matching aliens and send them to customs.";
@@ -1325,7 +1777,9 @@ function receiveMessageAsAgent(message) {
   }
 
   if (message.type === "game-over") {
+    hideRequestCountdown();
     gameOverMessage.textContent = message.message;
+    renderGameOverStandings(message.standings || message.progress);
     renderAgentProgress(message.progress);
     sendSelectedButton.disabled = true;
     setConnectionStatus("Game over");
@@ -1448,6 +1902,29 @@ function buildSubmissionSummaryText(submissionRecord) {
   }
 
   return submissionRecord.acceptedCount + " accepted from " + submissionRecord.sentCount + " sent";
+}
+
+function renderGameOverStandings(standings) {
+  gameOverStandings.innerHTML = "";
+
+  if (Array.isArray(standings) === false || standings.length === 0) {
+    return;
+  }
+
+  for (var index = 0; index < standings.length; index = index + 1) {
+    var player = standings[index];
+    var standingsRow = document.createElement("div");
+    var nameElement = document.createElement("strong");
+    var detailElement = document.createElement("span");
+
+    standingsRow.className = "standings-row";
+    nameElement.textContent = player.name;
+    detailElement.textContent = getAliensLeftText(player.remainingAliens);
+
+    standingsRow.appendChild(nameElement);
+    standingsRow.appendChild(detailElement);
+    gameOverStandings.appendChild(standingsRow);
+  }
 }
 
 function renderAgentProgress(progressList) {

@@ -190,12 +190,20 @@
         <p class="eyebrow">Customs cleared</p>
         <h2 id="gameOverTitle">Game Over</h2>
         <p id="gameOverMessage">An agent has cleared customs.</p>
+        <div class="standings-list" id="gameOverStandings"></div>
         <button class="primary-action" id="gameOverMainPageButton">
           Main Page
         </button>
       </div>
     </section>
   </main>
+
+  <div class="countdown-backdrop" id="requestCountdownOverlay" hidden>
+    <section class="countdown-panel" role="status" aria-live="assertive" aria-labelledby="requestCountdownTitle">
+      <p class="eyebrow" id="requestCountdownTitle">Incoming Earth Request</p>
+      <div class="countdown-number" id="requestCountdownNumber">3</div>
+    </section>
+  </div>
 
   <div class="modal-backdrop" id="howToPlayModal" hidden>
     <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="howToPlayTitle">
