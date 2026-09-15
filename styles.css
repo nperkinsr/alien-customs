@@ -416,10 +416,6 @@ button:disabled {
   font-weight: 800;
 }
 
-.request-text.requirement-flash {
-  animation: requirement-flash 1.35s ease-in-out 1;
-}
-
 .quota-text {
   width: fit-content;
   margin-bottom: 16px;
@@ -516,6 +512,25 @@ button:disabled {
   flex: 0 0 auto;
   color: var(--green);
   font-weight: 700;
+}
+
+.submission-detail {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.submission-row .penalty-badge {
+  min-width: 30px;
+  padding: 3px 7px;
+  color: #ff6b6b;
+  font-weight: 900;
+  line-height: 1;
+  text-align: center;
+  background: rgba(255, 107, 107, 0.12);
+  border: 1px solid rgba(255, 107, 107, 0.42);
+  border-radius: 999px;
 }
 
 .compact-player-list .player-row span {
@@ -914,31 +929,6 @@ tbody tr.skeleton-row:nth-child(even):hover {
 
 .hidden {
   display: none;
-}
-
-@keyframes requirement-flash {
-  0%,
-  100% {
-    color: var(--ink);
-    background: var(--surface-raised);
-    box-shadow: none;
-  }
-
-  12%,
-  38%,
-  64% {
-    color: #151515;
-    background: var(--green);
-    box-shadow: 0 0 0 4px rgba(155, 227, 127, 0.22);
-  }
-
-  25%,
-  51%,
-  77% {
-    color: var(--ink);
-    background: var(--surface-raised);
-    box-shadow: none;
-  }
 }
 
 @media (max-width: 980px) {

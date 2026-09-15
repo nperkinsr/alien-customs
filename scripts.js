@@ -381,18 +381,6 @@ function playAlienSelectSound() {
   }
 }
 
-function flashRequirementText(requirementElement) {
-  requirementElement.classList.remove("requirement-flash");
-
-  /*
-    Removing and readding the class restarts the animation
-    requestAnimationFrame gives the browser one beat to notice the reset
-  */
-  requestAnimationFrame(function () {
-    requirementElement.classList.add("requirement-flash");
-  });
-}
-
 function showTemporaryHostStatus(message) {
   hostStatusMessage.textContent = message;
 }
@@ -1476,7 +1464,6 @@ function publishNewEarthRequest() {
   generateRequestButton.disabled = hostGameState.gameOver === true;
 
   renderRequestText(hostRequestText, hostGameState.currentRequest);
-  flashRequirementText(hostRequestText);
   hostQuotaText.textContent = getQuotaText(hostGameState.remainingSpaces);
   showHostQuota();
   renderHostSubmissionList();
@@ -1593,6 +1580,7 @@ function processAgentSubmission(agentPeerId, submittedAlienIds) {
     agentRecord,
     submittedAlienIds.length,
     acceptedAlienIds.length,
+    newAlienPenalty !== null,
   );
   sendSubmissionResult(
     agentRecord,
@@ -1613,7 +1601,12 @@ function addPenaltyAlienToAgent(agentRecord) {
   return newAlien;
 }
 
-function recordHostSubmission(agentRecord, sentCount, acceptedCount) {
+function recordHostSubmission(
+  agentRecord,
+  sentCount,
+  acceptedCount,
+  gotPenalty,
+) {
   // The host summary adds together all sends from the same player during this Earth request
   if (
     hostGameState.currentRequestSubmissions[agentRecord.peerId] === undefined
@@ -1622,6 +1615,7 @@ function recordHostSubmission(agentRecord, sentCount, acceptedCount) {
       name: agentRecord.name,
       sentCount: 0,
       acceptedCount: 0,
+      penaltyCount: 0,
     };
   }
 
@@ -1632,6 +1626,12 @@ function recordHostSubmission(agentRecord, sentCount, acceptedCount) {
   hostGameState.currentRequestSubmissions[agentRecord.peerId].acceptedCount =
     hostGameState.currentRequestSubmissions[agentRecord.peerId].acceptedCount +
     acceptedCount;
+
+  if (gotPenalty === true) {
+    hostGameState.currentRequestSubmissions[agentRecord.peerId].penaltyCount =
+      hostGameState.currentRequestSubmissions[agentRecord.peerId].penaltyCount +
+      1;
+  }
 }
 
 function findAlienOwnedByAgent(agentRecord, alienId) {
@@ -1985,7 +1985,6 @@ function receiveMessageAsAgent(message) {
     hideRequestCountdown();
     selectedAlienIds = [];
     renderRequestText(agentRequestText, message.request);
-    flashRequirementText(agentRequestText);
     agentQuotaText.textContent = getQuotaText(message.remainingSpaces);
     agentSubmissionStatus.textContent =
       "Select matching aliens and send them to customs.";
@@ -2146,14 +2145,27 @@ function renderHostSubmissionList() {
       hostGameState.currentRequestSubmissions[submitterPeerIds[index]];
     var submissionRow = document.createElement("div");
     var nameElement = document.createElement("strong");
+    var detailGroup = document.createElement("div");
     var detailElement = document.createElement("span");
 
     submissionRow.className = "submission-row";
+    detailGroup.className = "submission-detail";
     nameElement.textContent = submissionRecord.name;
     detailElement.textContent = buildSubmissionSummaryText(submissionRecord);
 
     submissionRow.appendChild(nameElement);
-    submissionRow.appendChild(detailElement);
+    detailGroup.appendChild(detailElement);
+
+    if (submissionRecord.penaltyCount > 0) {
+      var penaltyElement = document.createElement("span");
+
+      penaltyElement.className = "penalty-badge";
+      penaltyElement.textContent = "+" + submissionRecord.penaltyCount;
+      penaltyElement.title = "Penalty alien added";
+      detailGroup.appendChild(penaltyElement);
+    }
+
+    submissionRow.appendChild(detailGroup);
     hostSubmissionList.appendChild(submissionRow);
   }
 }
